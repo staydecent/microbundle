@@ -1,6 +1,6 @@
 import 'acorn-jsx';
 import fs from 'fs';
-import { resolve, relative, dirname, basename, extname } from 'path';
+import { join, resolve, relative, dirname, basename, extname } from 'path';
 import chalk from 'chalk';
 import { map, series } from 'asyncro';
 import glob from 'tiny-glob/sync';
@@ -302,11 +302,11 @@ function createConfig(options, entry, format, writeMeta) {
 	}
 	loadNameCache();
 
-	const rootImport = options => ({
+	const rootImport = opts => ({
 		resolveId: (importee, importer) => {
 			if (importee[0] === '/') {
-				const rootPath = `${options.root}${importee}.js`;
-				const absPath = resolve(__dirname, rootPath);
+				const rootPath = `${opts.root}${importee}.js`;
+				const absPath = join(options.cwd, rootPath);
 				return fs.existsSync(absPath) ? absPath : null;
 			}
 			return null;
@@ -324,6 +324,9 @@ function createConfig(options, entry, format, writeMeta) {
 			},
 			plugins: []
 				.concat(
+					rootImport({
+						root: options.root || './src',
+					}),
 					alias({
 						__microbundle_entry__: entry,
 					}),
@@ -338,9 +341,6 @@ function createConfig(options, entry, format, writeMeta) {
 						// only write out CSS for the first bundle (avoids pointless extra files):
 						inject: false,
 						extract: !!writeMeta,
-					}),
-					rootImport({
-						root: options.root || 'app',
 					}),
 					useTypescript &&
 						typescript({
