@@ -302,6 +302,17 @@ function createConfig(options, entry, format, writeMeta) {
 	}
 	loadNameCache();
 
+	const rootImport = options => ({
+		resolveId: (importee, importer) => {
+			if (importee[0] === '/') {
+				const rootPath = `${options.root}${importee}.js`;
+				const absPath = resolve(__dirname, rootPath);
+				return fs.existsSync(absPath) ? absPath : null;
+			}
+			return null;
+		},
+	});
+
 	let config = {
 		inputOptions: {
 			input: exportType ? resolve(__dirname, '../src/lib/__entry__.js') : entry,
@@ -327,6 +338,9 @@ function createConfig(options, entry, format, writeMeta) {
 						// only write out CSS for the first bundle (avoids pointless extra files):
 						inject: false,
 						extract: !!writeMeta,
+					}),
+					rootImport({
+						root: options.root || 'app',
 					}),
 					useTypescript &&
 						typescript({
